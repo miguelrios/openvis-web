@@ -1,0 +1,909 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>Exploring Web Graphics APIs for Data Visualization</title>
+
+		<meta name="description" content="A presentation of different web graphics APIs, examples and guidelines.">
+		<meta name="author" content="@miguelrios">
+
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<link rel="stylesheet" href="css/reveal.min.css">
+		<link rel="stylesheet" href="css/theme/default.css" id="theme">
+
+		<!-- For syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+		
+    <!-- shaders -->
+    <script id="vertex-shader" type="x/webgl">
+      attribute vec3 position;
+      attribute vec3 color;
+
+      varying vec3 vColors;
+
+      void main(void) {
+        gl_Position = vec4(position.x, position.y, 0, 1);
+        gl_PointSize = position.z * 50.;
+        vColors = color;
+      }
+    </script>
+    
+    <script id="fragment-shader" type="x/webgl">
+      #ifdef GL_ES
+      precision highp float;
+      #endif
+
+      uniform sampler2D sampler1;
+      varying vec3 vColors;
+
+      void main(void) {
+        vec4 point = texture2D(sampler1, gl_PointCoord);
+        gl_FragColor = vec4(vColors, point.a);
+      }
+    </script>
+		<script src="js/bubbles.js"></script>
+		<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+		<script src="http://d3js.org/d3.v3.min.js"></script>
+		<script src="lib/js/PhiloGL.js"></script>
+		<script src="js/scatterplot_svg.js"></script>
+		<script src="js/scatterplot_div.js"></script>
+		<script src="js/scatterplot_canvas.js"></script>
+		<script src="js/arc_svg.js"></script>
+		<script src="js/arc_with_trail_svg.js"></script>
+		<script src="js/arc_with_trail_canvas.js"></script>
+		<script src="js/scatterplot_webgl.js"></script>
+		<style type="text/css">
+
+			#splash > * {
+				z-index: 100;
+			}
+			#bubbles{
+				width:100%;
+				height:100%;
+				position:absolute;
+				top: 0;
+				left: 0;
+				opacity: 0.1;
+				z-index:1;
+			}
+			.logos img{
+			  height: 100px;
+			  display: inline-block;
+			  margin-right:25px;
+			}
+
+			#example-canvas-arc-with-trail2, #example-svg-arc-with-trail2{
+				height: 250px;
+			}
+
+			.logos img#umd{
+			  margin-right:0px;
+			}
+
+			#work img{
+			  border: none;
+			}
+
+			#quadrant{
+				width:100%;
+				height:600px;
+			}
+
+			#quadrant ul {
+				list-style: none;
+				width: 100%;
+			}
+
+			#quadrant ul li{
+				display: inline-block;
+				height: 200px;
+				width: 50%;
+				margin:25px 0 0 0;
+				padding:0 0 0 0;
+				float: left;
+			}
+
+			#quadrant ul li h5{
+				text-align:center;
+			}
+
+			#quadrant ul li div{
+				height:170px;
+				width:100%;
+			}
+			#retained small, #immediate small{
+				font-size:14px;
+			}
+
+			#retained-vs-immediate img{
+				width: 40%;
+				display: inline-block;
+			}
+
+			.reveal table{
+				z-index : 0;
+				border-collapse: collapse;
+				border-spacing: 0;
+			}
+
+			.reveal table tr > *:first-child{
+				text-align:left;
+				font-weight:bold;
+			}
+
+
+			.reveal table th{
+				font-weight: bold;
+			}
+
+			.reveal table tr > * {
+				font-size: 24px;
+				text-align:center;
+				line-height: 26px;
+				padding: 10px;
+				vertical-align: middle;
+			}
+
+			.reveal table tr td span{
+				vertical-align: middle;
+			}
+
+			.reveal table tr > *.active{
+				background-color: rgba(255, 159, 64, 0.25);
+				border-left: 5px solid #555;
+				border-right: 5px solid #555;
+			}
+
+			.reveal table tr:last-child td{
+				background-color: rgba(0, 0, 0, 0.10);
+				border-left: none;
+				border-right: none;
+				font-weight: bold;
+			}
+
+			aside.notes{
+				width: 100%;
+				font-size:18px;
+			}
+
+			.trail{
+				display:inline-block;
+				width: 45%;
+			}
+
+		</style>
+
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+
+	<body>
+		<div id = 'bubbles'></div>
+		<div class="reveal">
+
+			<!-- Any section element inside of this container is displayed as a slide -->
+			<div class="slides">
+				<section id = 'splash' data-state='start-bubbles'>
+					<h1>Dataviz ♥ Web</h1>
+					<h3>Exploring Web Graphics APIs for Data Visualization</h3>
+					<p>
+						<a href="http://twitter.com/miguelrios">@miguelrios</a>, <a href="http://twitter.com/jobs">Twitter Inc.</a></small>
+					</p>
+					<aside class = 'notes' >Use this slide only when introduced. Thank you!</aside>
+				</section>
+
+				<section data-state='end-bubbles' id = 'work'>
+					<h3>@miguelrios?</h3>
+					<div class = 'logos'>
+						<img src = '/img/logo01.png' id = 'uprm'/>
+						<img src = '/img/umd-ball.jpg' id = 'umd'/>
+						<img src = '/img/HCIL_logo_small_no_border.gif' id = 'hcil'/>
+						<img id = 'twitter-logo' src = '/img/twitter-bird-light-bgs.png'/>
+					</div>
+					<img src = '/img/work.png'/>
+					<aside class = 'notes'>
+						 Hello everyone, I'm Miguel Rios. I work at Twitter's data visualization team. We create tools to help the company explore, analyze and visualize our large datasets. 
+
+						 Part of my job is to develop data visualizations using the diverse set of frameworks and standards that the web offers today.
+					</aside>
+				</section>
+
+				<section data-state = 'delete-quadrant'>
+					<h3>Outline</h3>
+					<ol>
+						<li>Brief overview of Web Graphics Standards and APIs.</li>
+						<li>Real life examples.</li>
+						<li>Basic guidelines.</li>
+					</ol>
+					<aside  class="notes">
+						In this talk I'll give you a brief overview of these wonderful technologies. Then I'll show you a few real-life examples of our use of them at Twitter and finally, I'll end with some recommendations and guidelines on how to safely use these technologies to your advantage. 
+					</aside>
+				</section>
+
+				<section data-state = 'draw-quadrant'>
+					<h3>Plenty of Options</h3>
+					<div id = 'quadrant'>
+						<ul>
+							<li><h5>HTML/CSS</h5><div  id = 'div-example'></div></li>
+							<li><h5>SVG</h5><div  id = 'svg-example'></div></li>
+							<li><h5>HTML5 Canvas</h5><div  id = 'canvas-example'></div></li>
+							<li><h5>WebGL</h5><div  id = 'webgl-example'></div></li>
+						</ul>
+					</div>
+					<aside  class="notes">
+					I figured the best way to start a presentation about web graphic APIs is to actually show some visualizations using them. What you see in the screen is four set of circles with different sizes and colors being drawn using four different technologies. 
+
+					In the top left, the circles are drawn using HTML and styled using CSS. HTML is the main markup language for creating web pages and other information that can be displayed in a web browser.
+
+					In the top right the elements are drawn using SVG, which stands for Scalable Vector Graphics, a vector image format for two-dimensional graphics that has support for interactivity and animation and its supported by all major modern browsers.
+
+					In the bottom left, the circles are drawn using canvas. The canvas element is part of HTML5 and allows for dynamic, scriptable rendering of 2D shapes and bitmap images. 
+
+					Finally, in the bottom right, the elements are drawn using WebGL. WelGL, which stands for Web Graphics Library is a JavaScript API for rendering interactive 2D and 3D graphics within any compatible web browser.
+
+					Now, in order to help you understand one of the simplest but most important differences between these technologies, I want you to visualize how the web browser sees these visualizations. To do this, I'm going to use a very awesome extension for Firefox called Tilt to actually visualize my presentation about data visualization. 
+
+					OPEN TILT 
+
+					As you may see, there's a big difference in how the circles are being drawn in the web browser. The circles at the top look like actually objects in top of the document, while the ones in the bottom look like an image.
+
+					TURN OFF SCREEN. 
+					This is a very important distinction and I want to explain it by diving in with some examples.
+					
+					I like to use two metaphors to explain these drawing modes. They are not perfect but they helped me understand them better and I certainly hope they will help you too. 
+
+					TURN ON SCREEN
+
+				</aside>
+				</section>
+				<section id = 'retained' data-state = 'delete-quadrant'>
+					<h3>Retained Drawing</h3>
+					<h4>(HTML, SVG)</h4>
+					<img src = '/img/svg_baby.jpg'/>
+					<br/>
+					<small>Photo credit: <a href = 'http://www.flickr.com/photos/kbeil/6780015314/sizes/m/in/photostream'>kbeil on Flickr.</a></small>
+					<aside class = 'notes'>
+						I see retained drawing as these shape puzzles kids use to learn colors and shapes. The shapes can be touched, moved around and, well, in theory, you could alter their shape and color. My point is, they are there for you to manipulate directly. 
+					</aside>
+				</section>
+
+				<section id = 'immediate'>
+					<h3>Immediate Drawing</h3>
+					<h4>(Canvas, WebGL)</h4>
+					<img src = '/img/canvas_baby.jpg'/>
+					<br/>
+					<small>Photo credit: <a href = 'http://www.flickr.com/photos/protoflux/2243471528/sizes/m/in/photostream/'>protoflux on Flickr.</a></small>
+					<aside class = 'notes'>
+						On the other hand, both canvas and WebGL draw in a different way, called immediate mode. I like to compare this to a physical blank canvas which is altered by using a brush and some paint. 
+
+						In immediate mode objects are specified and drawn, and that's it. The browser doesn't keep any track of what you are drawing or where the objects you drew are. All the operations are made on the canvas element itself. It's "draw and forget".
+
+						Now, this metaphor is not perfect. Unlike a physical canvas, you can programatically clear and redraw on it in miliseconds. 
+					</aside>
+				</section>
+				<section>
+					<h3>SVG Example</h3>
+					<svg width="300" height="300">
+					  <circle cx="150" cy="150" r="100" style="fill: #1f77b4;"></circle>
+					</svg>
+					<pre><code data-trim contenteditable>
+<svg width="300" height="300">
+  <circle cx="150" cy="150" r="100" style="fill: #1f77b4"></circle>
+</svg>
+					</code></pre>
+					<aside class = 'notes'>
+						Now I'm going to show you some basic examples so you see how these difference look like in code. 
+
+						First, this is how you draw a circle using SVG. It's very simple XML code. You open a SVG tag and then insert a circle tag with some attributes. CX and CY take the coordinates of the center of the circle, r takes its radius and in the style attribute you can add CSS rules like a color to fill the circle. 
+
+						TURN OFF SCREEN. 
+
+						Now, if you are building interactive data visualizations, it's very unlikely you are going to write SVG code directly. You will probably use either plain Javascript, or one of the many libraries that are open source and help you to programatically perform operations in your objects.
+
+						I like to use d3.js, which is a relatively new but well-known JavaScript library for manipulating documents based on data. 
+
+						TURN ON SCREEN. 						
+
+					</aside>
+				</section>
+
+				<section>
+					<h3>SVG Example (using d3.js)</h3>
+					<div id = 'example-svgd3'>
+						<script type="text/javascript">
+							var svg = d3.select("#example-svgd3").append("svg")
+      					.attr("width", 300)
+      					.attr("height", 300);
+							var circle = svg.append("circle")
+							  .attr("cx", 150)
+							  .attr("cy", 150)
+							  .attr("r", 100)
+							  .style("fill", "#1f77b4")
+							  .on("click", function(){alert("Congrats! You clicked on a blue circle.");});
+						</script>
+					</div>
+					<pre><code data-trim contenteditable>
+// append svg to parent div.
+var svg = d3.select("#example-svgd3").append("svg")
+  .attr("width", 300)
+  .attr("height", 300);
+// append a circle to the svg element.
+var circle = svg.append("circle")
+  .attr("cx", 150)
+  .attr("cy", 150)
+  .attr("r", 100)
+  .style("fill", "#1f77b4");
+					</code></pre>
+					<aside class = 'notes'>
+						Now this is the d3 code used to draw the same circle. It's basically the same thing, but it's in Javascript. The simplest way to show the advantage of using d3 or Javascript is the ability to change properties from the drawn elements programatically. 
+
+						Please note that when we are drawing the circle, we are storing a reference to it in the variable "circle".
+					</aside>
+				</section>
+
+				<section data-state='draw-svg-anim'>
+					<h3>SVG Animation (using d3.js)</h3>
+					<div id = 'example-svgd32'>
+					</div>
+					<pre><code data-trim contenteditable>
+// animate the circle radius from 100 to 10 pixels.
+circle.transition()
+  .attr("r", 10)
+  .delay(5000)
+  .duration(5000);
+					</code></pre>
+					<aside class = 'notes'>
+						Now, let's do a very simple animation. To do this in d3, I simply performed the operation 'transition' in the circle, with the new radius of the circle and a few other optional properties. As you see, the circle is still there but it's smaller now.
+						TODO: add the circle object with the changing radius.
+					</aside>
+				</section>
+
+				<section>
+					<h3>Canvas Example</h3>
+					<canvas width="300" height="300" id = 'dot-example'></canvas>
+					<script type="text/javascript">
+						var canvas = document.getElementById("dot-example");
+						var context = canvas.getContext('2d');
+						//draw
+						context.beginPath();
+						context.arc(150, 150, 100, 0, 2 * Math.PI, false);
+						context.fillStyle = "#1f77b4";
+						context.fill();
+					</script>
+					<pre><code data-trim contenteditable>
+// retrieve context from canvas.
+var canvas = document.getElementById("dot-example");
+var context = canvas.getContext('2d');
+// draw circle inside canvas.
+context.beginPath();
+context.arc(150, 150, 100, 0, 2 * Math.PI, false);
+context.fillStyle = "#1f77b4";
+context.fill();
+					</code></pre>
+					<aside class = 'notes'>
+						Now, I want to show you the same circle, the same animation using canvas. I won't go through the code, but the main difference here is that we are not creating a 'circle' object. Instead, we are performing the operation of drawing in the canvas itself.
+					</aside>
+				</section>
+				<section data-state='draw-canvas-anim'>
+					<h3>Canvas Animation</h3>
+					<canvas width="300" height="300" id = 'dot-example2'></canvas>
+					<pre><code data-trim contenteditable>
+var r = 100;
+var interval = setInterval(function(){
+  r = r - 1;
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.beginPath();
+  context.arc(150, 150, r, 0, 2 * Math.PI, false);
+  context.fillStyle = "#1f77b4";
+  context.fill();
+  if(r == 10){
+    clearInterval(interval);
+  }
+},50);
+					</code></pre>
+					<aside class = 'notes'>
+						In the animation, the main difference here is that we are storing a reference to the circle's radius ourselves and performing the resize operation by redrawing the circle every 50 miliseconds until it's 10 pixels.
+					</aside>
+				</section>
+				<section id = 'retained-vs-immediate'>
+					<h3>Recap - Retained vs. Immediate</h3>
+					<img src = '/img/svg_baby.jpg'/>
+					<img src = '/img/canvas_baby.jpg'/>
+					<aside class = 'notes'>
+						Just to recap on this topic, while in retained mode, HTML and SVG provide developers a reference to the objects being drawn in the document, canvas and WebGL are basically a set of pixels that can be dinamically manipulated.  It's up to the developer to keep track of what's being drawn in the screen by using Javascript.
+					</aside>
+				</section>
+				<section>
+					<h2>Examples</h2>
+					<aside class = 'notes'>
+						TURN OFF SCREEN.
+
+						Now I want to show you a few examples of data visualizations we have created at Twitter. These three examples make use of these four web graphic APIs where we believe it was appropiate. I want to use these examples as the base to provide you with a set of guidelines whenever you have to choose between these APIs.
+					</aside>
+				</section>
+				<section>
+					<h3>2012 U.S. Elections Map</h3>
+					<p>Engagement of tweets sent by the Presidential Candidates for the 2012 elections.</p>
+					<aside class = 'notes'>
+						The first example is an interactive visualization we published last fall, right before the US Elections. We were curious about how U.S. Twitter users engaged with all the tweets the Candidates were publishing. To do this, we grabbed all of their tweets, tagged them with topics, and evaluated how users from different states engaged with them. 
+
+						The results looked very promising, thus we developed an interactive, exploratory visualization that we published in our Elections portal. You still can access this visualization by visiting http://elections.twitter.com/map.
+					</aside>
+				</section>
+				<section>
+					<a href = 'https://elections.twitter.com/map' target = '_blank'><img src = '/img/elections_map.png'/></a>
+					<aside class = 'notes'>
+						The main purpose of this visualization was to let journalists and users in general explore it, see how individual tweets were received by different states and see which tweets were received the better by particular states. 
+
+						The visualization has four main components: two bar charts, left and right, representing the individual tweets, sized by the amount of engamenent (ie. rts and favourites) they reveived. In the center there's a U.S. map with each state colored by the amount of engagement the selected tweet received there, a search box to lookup tweets with different keywords and topics, and a distribution chart showing the topics the users for a particular state engaged the most with. 
+
+						Most of the components of this visualization are interactive. You can click an individual tweet to see the distribution of engagement by country and topic, and you can also click on a particular state to see which tweets had more engagement in that particular state. 
+
+						Here are some of the findings users got thanks to the interactivity of this visualiation:
+
+						1. When you search for tweets about coal, you can see how users from high-production coal states engaged the most with tweets from Mitt Romney. 
+
+						2. Users from southeastern states had unusual engagements with tweets about Pell Grants. 
+
+						3. Users from different states cared the most with different topics:
+
+						  - Users from Texas cared the most about tweets about Immigration.
+						  - Users from Washington state cared the most about Gay Rights.
+						  - Users from New York cared the most about Abortion rights.
+						  - Users from Nevada cared the most about Taxes. 
+
+						OPEN TILT
+
+						Most of the visualization is actually HTML, including the bar charts that represent the tweets. However, in order to draw the complex shapes of the 50 states, we used SVG, which has very nice support for custom shapes. We used SVG also because it's very simple to attach information to the state shapes,which is very useful when you want to click on a state and actually know which state you click on. SVG was also very helpful here, given that we could set the color of each shape to be encoded with different values by just changing a property in the shape objects.
+
+						Also, you can't see it in this view, but we generated static map images for every tweet, so users with browsers with no SVG support would see the visualizations too, even though they couldn't click on the states.
+
+						CLOSE TILT
+					</aside>
+				</section>
+				<section>
+					<h3>Scorecard</h3>
+					<table>
+						<tbody>
+							<tr>
+								<th>Attribute</th>
+								<th class = 'active'>Elections Map</th>
+								<th>Example #2</th>
+								<th>Example #3</th>
+							</tr>
+							<tr>
+								<td>Number of elements: </td>
+								<td class = 'active'><span class="fragment" data-fragment-index="1">Low</span></td>
+								<td></td>
+								<td></td>
+							</tr>
+							<tr>
+								<td>Complexity of elements: </td>
+								<td class = 'active'><span class="fragment" data-fragment-index="2">High</span></td>
+								<td></td>
+								<td></td>
+							</tr>
+							<tr>
+								<td>Interactivity? </td>
+								<td class = 'active'><span class="fragment" data-fragment-index="3">Yes</span></td>
+								<td></td>
+								<td></td>
+							</tr>
+							<tr>
+								<td>Animations? </td>
+								<td class = 'active'><span class="fragment" data-fragment-index="4">No</span></td>
+								<td></td>
+								<td></td>
+							</tr>
+							<tr>
+								<td>Browser support: </td>
+								<td class = 'active'><span class="fragment" data-fragment-index="5">IE7+</span></td>
+								<td></td>
+								<td></td>
+							</tr>
+							<tr>
+								<td>Open source resources: </td>
+								<td class = 'active'><span class="fragment" data-fragment-index="6">d3.js</span></td>
+								<td></td>
+								<td></td>
+							</tr>
+							<tr>
+								<td>Standard</td>
+								<td class = 'active'><span class="fragment" data-fragment-index="7">HTML/SVG</span></td>
+								<td></td>
+								<td></td>
+							</tr>
+					</table>
+
+					<aside class = 'notes' class="notes">
+						Just to recap in this visualization, here's a brief summary of its attributes: 
+						- It has a low number of elements. Only 50 shapes for states and 50 bars for the individual tweets.
+						- The elements are itself of complex shapes, specifically the states. 
+						- This visualization is very interactive.
+						- It has no animations.
+						- We released this to the public, so we wanted to support as many browsers as possible. The visualization works in IE 7 and newer browsers. For browsers with no SVG support we replaced the interactive states map with a static snapshot. 
+					</aside>
+				</section>
+				<section>
+					<h3>HTML/SVG</h3>
+					<p>Good choice for small number of elements, complex shapes, interactive visualizations.</p>
+					<aside class = 'notes' class="notes">
+						
+					</aside>
+				</section>
+				<section>
+					<h3>2011 Japan Earthquake</h3>
+					<p>Visualization of tweets directed at, or posted by, users from Japan, retweets and reach of those tweets.
+					<aside class = 'notes'>
+						For the second example, I'm going to show you a visualization of tweets traveling through the world we did after the devastating earthquake and tsunami that hit Japan in March, 2011. After the earthquake, we noticed a very high spike in tweets and general use of Twitter from Japan. Later on, reports surfaced of problems with the regular communication channels, and Twitter users there resorted to use Twitter to let friends and relative know they are well as well as to be aware about the latest news and developments about the event. 
+					</aside>
+				</section>
+				<section>
+					<img src = '/img/japan_quake.png' />
+					<aside class = 'notes'>
+						In the visualization you can see tweets mentioning Japan users sent from all over the world as well as tweets from Japan users mentioning others around the globe. Also, as tweets are mostly public, they get propagated to other users by being retweeted, which you can see in yellow and green. 
+
+						Now, unlike the first visualization, this one is just an animation used to complement a bigger story we shared in our blog. We released it as a video, and users can't interact with it. In order to explain you which technologies we used to do this visualization and why, I'd like to explain what's happening in the most basic layer.
+					</aside>
+				</section>
+				<section data-state='draw-svg-arc'>
+					<h3>The path of a tweet</h3>
+					<div id = 'example-svg-arc' style = 'height:300px'></div>
+					<aside class = 'notes'>
+						In the basic level, what we are doing in this visualization is just drawing circles on a path. That's mostly it. 
+					</aside>
+				</section>
+					<section data-state = 'draw-both-arc-with-trail'>
+					<h3>Trail: SVG vs. Canvas</h3>
+					<div id = "example-svg-arc-with-trail2" class = 'trail'></div>
+					<div id = "example-canvas-arc-with-trail2" class = 'trail'></div>
+					<aside class = 'notes'>
+						We also added a trail behind the tweets, so the user remembers that a tweet traveled between those two points even when the circle already arrived to its destination. To do this, we are basically drawing circles along the path. That's all what's happening in this visualization, 1000s times. 
+
+						Now, here is an example of drawing four tweets and their trails using this technique, both in SVG at the left, and canvas at the right of the screen.
+
+						I'm going to open Tilt again and see the footprint these visualizations are leaving in the browser. 
+
+						OPEN TILT
+
+						As you can see, the SVG one retains references to all the circles we are drawing along the way. This could be handy if we wanted to access these circles later on, maybe to remove them after certain amount of time. in this case we don't need to use them after drawing them. We are just drawing and forgetting about it. This is a perfect case for ccamvas, as we are drawing in an image instead of adding elements inside some document that we are not going to use later on. 
+					</aside>
+				</section>
+				<section>
+					<h3>Japan Earthquake Viz</h3>
+					<table>
+						<tbody>
+							<tr>
+								<th>Attribute</th>
+								<th>Elections Map</th>
+								<th class = 'active'>Japan Earthquake</th>
+								<th>Example #3</th>
+							</tr>
+							<tr>
+								<td>Number of elements: </td>
+								<td>Low</span></td>
+								<td class = 'active'><span class="fragment" data-fragment-index="1">Large</span></td>
+								<td></td>
+							</tr>
+							<tr>
+								<td>Complexity of elements: </td>
+								<td>High</span></td>
+								<td class = 'active'><span class="fragment" data-fragment-index="2">Low</span></td>
+								<td></td>
+							</tr>
+							<tr>
+								<td>Interactivity? </td>
+								<td>Yes</span></td>
+								<td class = 'active'><span class="fragment" data-fragment-index="3">No</span></td>
+								<td></td>
+							</tr>
+							<tr>
+								<td>Animations? </td>
+								<td>No</span></td>
+								<td class = 'active'><span class="fragment" data-fragment-index="4">Yes</span></td>
+								<td></td>
+							</tr>
+							<tr>
+								<td>Browser support: </td>
+								<td>IE7+</span></td>
+								<td class = 'active'><span class="fragment" data-fragment-index="5">Latest</span></td>
+								<td></td>
+							</tr>
+							<tr>
+								<td>Open source resources: </td>
+								<td>d3.js</span></td>
+								<td class = 'active'><span class="fragment" data-fragment-index="6">processing.js</span></td>
+								<td></td>
+							</tr>
+							<tr>
+								<td>Standard</td>
+								<td>HTML/SVG</span></td>
+								<td class = 'active'><span class="fragment" data-fragment-index="7">HTML 5 Canvas</span></td>
+								<td></td>
+							</tr>
+					</table>
+					<aside class = 'notes'>
+						Just explain the table.
+					</aside>
+				</section>
+				<section>
+					<h3>Canvas</h3>
+					<p>Great for small-to-relatively-large number of elements and animations.</p>
+					<aside class="notes">
+						No more to say other than the text in the screen.
+					</aside>
+				</section>
+				<section>
+					<h3>Neil Armstrong's visualization</h3>
+					<p>Retweets from @NASA's tweet about Neil Armstrong passing away.</p>
+					<aside class = 'notes'>
+						The third example is a visualization of tweets about Neil Armstrong the day he passed away. As with the second example, we used this visualization as a complement to a story we published in our blog. 
+
+						We queried all the tweets mentioning Neil Armstrong the day he passed away, and then tried to come with a visualization that could serve as a tribute to him, not just by us at Twitter but from everyone who tweeted about him that day. 
+
+						The first problem we had when trying to do this visualization is that we found a total of 1.4 million tweets mentioning Neil Armstrong that day. We could aggregate them in some way, but at that stage it was unclear how we wanted to visualize this data.
+
+						We tried to use WebGL to visualize this dataset, given that it works very well by using hardware acceleration using both the CPU and the computer's GPU (graphical processing unit).
+
+					</aside>
+				</section>
+				<section>
+					<a href = 'http://www.youtube.com/watch?v=lPzWr6x08jw&feature=youtu.be' target = '_blank'><img src = '/img/armstrong_globe.png'/></a>
+					<aside class = 'notes'>
+						We decided to use the space methaphor in the visualization. Every tweet was represented as a light, or a candle, in Earth, while we zoom out and the globe spins, until the camera reaches the surface of the Moon. 
+
+						Even though we used this visualization as a video, the full version is an interactive visualization you can zoom, move around, and even better, you can alter the point og the animation you want to see. 
+
+						A good view we can get using this feature is Europe's reaction. When the news of Neil Armstrong passing away were published it was late at night in Europe. That's why you can see a few lights/tweets but not that much. As soon as it's dawn, users started to tweet about him as they learned the sad news.
+
+						As you can see, this is a 3d visualization with a lot going on. There's a full scene of space with the Earth, night/day time, the orbiting Moon and more than a million tweets being rendered in the screen. WebGL was the only way to go in this case.
+					</aside>
+				</section>
+				<section>
+					<h3>Neil Armstrong Visualization</h3>
+					<table>
+						<tbody>
+							<tr>
+								<th>Attribute</th>
+								<th>Elections Map</th>
+								<th>Japan Earthquake</th>
+								<th class = 'active'>Neil Armstrong</th>
+							</tr>
+							<tr>
+								<td>Number of elements</td>
+								<td>Low</span></td>
+								<td>Large</span></td>
+								<td class = 'active'><span class="fragment" data-fragment-index="1">Large</span></td>
+							</tr>
+							<tr>
+								<td>Complexity of elements</td>
+								<td>High</span></td>
+								<td>Low</span></td>
+								<td class = 'active'><span class="fragment" data-fragment-index="2">High</span></td>
+							</tr>
+							<tr>
+								<td>Interactivity?</td>
+								<td>No</span></td>
+								<td>Yes</span></td>
+								<td class = 'active'><span class="fragment" data-fragment-index="3">Yes</span></td>
+							</tr>
+							<tr>
+								<td>Animations?</td>
+								<td>No</span></td>
+								<td>Yes</span></td>
+								<td class = 'active'><span class="fragment" data-fragment-index="4">Yes</span></td>
+							</tr>
+							<tr>
+								<td>Browser support</td>
+								<td>IE7+</span></td>
+								<td>Latest</span></td>
+								<td class = 'active'><span class="fragment" data-fragment-index="5">Latest</span></td>
+							</tr>
+							<tr>
+								<td>Open source resources</td>
+								<td>d3.js</span></td>
+								<td>processing.js</span></td>
+								<td class = 'active'><span class="fragment" data-fragment-index="6">PhiloGL</span></td>
+							</tr>
+							<tr>
+								<td>Standard</td>
+								<td>HTML/SVG</span></td>
+								<td>HTML 5 Canvas</span></td>
+								<td class = 'active'><span class="fragment" data-fragment-index="7">WebGL</span></td>
+							</tr>
+					</table>
+					<aside class = 'notes'>
+						Just talk about the table. 
+					</aside>
+				</section>
+				<section>
+					<h3>WebGL</h3>
+					<p>Great for small-to-very-large number of elements, complex shapes, animations, 3d visualizations.</p>
+					<aside class="notes">
+						Just that...
+					</aside>
+				</section>
+				<section>
+					<h3>Before diving in, ask yourself: </h3>
+					<ul>
+						<li class="fragment" data-fragment-index="1">How many elements in the visualization?</li>
+						<li class="fragment" data-fragment-index="2">How complex are these elements shaped/arranged?</li>
+						<li class="fragment" data-fragment-index="3">Is it going to be interactive? </li>
+						<li class="fragment" data-fragment-index="4">Will it have animations or transformations?</li>
+						<li class="fragment" data-fragment-index="5">Do you need to support older web browsers?</li>
+						<li class="fragment" data-fragment-index="6">Are there related open source examples or frameworks? <span class="fragment" data-fragment-index="7">Spoiler: <strong>yes.</strong> </span></li>
+					</ul>
+					<aside class = 'notes'>
+						As you noticed, I used the same set of attributes for all visualizations. Whenever there's some new data we want to visualize, these are the first questions we have asked ourselves to start thinking about which technologies and libraries we should use or avoid.
+
+						Just repeat what you see in screen.  
+					</aside>
+				</section>
+				<section>
+					<h3>Graph of Twitter Employees</h3>
+					<p>Conversations between Twitter employees.<br>By Santiago Ortiz (<a href = 'http://twitter.com/@moebio' target = '_blank'>@moebio</a>)</p>
+					<aside class = 'notes'>
+						Now I want to show you real quick a last example. This one doesn't come from Twitter, but it's about Twitter. It's an awesome, although a bit creepy graph of conversations by Twitter employees, done by Santiago Ortiz, who is actually going to speak here later. 
+					</aside>
+				</section>
+				<section>
+					<aside class = 'notes'>
+						It's a highly interactive visualization. Employees are nodes in the graph, conversations between then are mapped using lines between the nodes. You can hover in the nodes and see information about them and you can click in a node to see the graph from a different perspective. So this is an interactive visualization, with animations, information attached in every node and edge, and it works very smoothly, even though it must have tens of thousands of elements between the nodes and connections. 
+
+						V1: Now, quick question to all of you:  using what I showed you before about these graphic technologies, how many of you think this is a visualization done using canvas?
+
+						WAIT
+
+						How many of you think this is a visualization done in SVG? 
+
+						WAIT
+
+						Well... It's actually a visualization done in canvas. All the interactivity, the information attached to the elements in the visualization is there, presumably developed by Santiago as a layer of abstraction in top of the canvas visualization.
+
+						And that brings me to the last poing of this talk. If you take only one thing out of these last 40 minutes, let it be this: 
+					</aside>
+					<a href = 'http://moebio.com/newk/twitter/' target = '_blank'><img src = '/img/tweeps_graph.png'/></a>
+				</section>
+				<section>
+					<p class = 'quote'>Don't let frameworks and APIs limit your visualizations.</p>
+					<strong>Be creative.</strong>
+					<aside class="notes">
+						I think that when you are starting to learn about data visualization and the web, you should use these guidelines I explained before. You should also try to learn how libraries and frameworks you are using work under the hood. 
+
+						That said, there will be one point in which you'll probably feel comfortable enough to start breaking the rules and take these technologies to their edges. At that point, you shouldn't stop and be bounded by this "limitations". Web browseres and these graphics APIs are getting ridiculously good, and the open source community has done an amazing job in building frameworks and libraries that will help you to take your visualizations to the next level. 
+
+						So my final point is this: no matter what, don't let a framework, library or technology, limit your visualizations. Above everything else, just be creative. 
+					</aside>
+				</section>
+				<section>
+					<a href = 'https://github.com/miguelrios/datavizontheweb' target = '_blank'>
+						http://github.com/miguelrios
+					</a>
+					<p>Fork this talk, make it better.</p>
+				</section>
+			</div>
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.min.js"></script>
+		<script>
+
+			// Full list of configuration options available here:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+
+				theme: "sky",
+				transition: 	'none', // default/cube/page/concave/zoom/linear/fade/none
+
+				// Optional libraries used to extend on reveal.js
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+					{ src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+				]
+			});
+
+			// init scatterplot on slide 1, deactivate on slide 2.
+			Reveal.addEventListener( 'start-bubbles', function() {
+				console.log( 'starting bubbles' );
+				new Bubbles($("#bubbles"));
+			} );	
+
+			Reveal.addEventListener( 'end-bubbles', function() {
+				console.log( 'ending bubbles' );
+				$("#bubbles").children().remove();
+			} );
+
+			Reveal.addEventListener( 'draw-quadrant', function() {
+				console.log( 'deleting examples');
+				$("#svg-example").children().remove();
+				$("#div-example").children().remove();
+				$("#canvas-example").children().remove();
+				$("#webgl-example").children().remove();
+				console.log( 'drawing examples');
+				new ScatterplotSVG($("#svg-example"));
+				new ScatterplotDiv($("#div-example"));
+				new ScatterplotCanvas($("#canvas-example"));
+				new ScatterplotWebGL($("#webgl-example"));
+			} );
+
+			Reveal.addEventListener( 'draw-canvas-anim', function() {
+				var canvas = document.getElementById("dot-example2");
+				var context = canvas.getContext('2d');
+				context.beginPath();
+				context.arc(150, 150, 100, 0, 2 * Math.PI, false);
+				context.fillStyle = "#1f77b4";
+				context.fill();
+				//draw
+				var r = 100;
+				setTimeout(function(){
+					var interval = setInterval(function(){
+					r = r - 1;
+					context.clearRect(0, 0, canvas.width, canvas.height);
+					context.beginPath();
+					context.arc(150, 150, r, 0, 2 * Math.PI, false);
+					context.fillStyle = "#1f77b4";
+					context.fill();
+					if(r == 10){
+						clearInterval(interval);
+					}
+				},50);
+				},5000);
+			} );
+
+			Reveal.addEventListener( 'draw-svg-anim', function() {
+				$("#example-svgd32").children().remove();
+				var svg = d3.select("#example-svgd32").append("svg")
+					.attr("width", 300)
+					.attr("height", 300);
+				var circle = svg.append("circle")
+				  .attr("cx", 150)
+				  .attr("cy", 150)
+				  .attr("r", 100)
+				  .style("fill", "#1f77b4");
+				circle.transition()
+					.attr("r", 10)
+					.delay(5000)
+					.duration(5000);
+			} );
+
+			Reveal.addEventListener( 'draw-svg-arc', function() {
+				$("#example-svg-arc").children().remove();
+				new ArcSVG($("#example-svg-arc"));
+			} );
+
+			Reveal.addEventListener( 'draw-svg-arc-with-trail', function() {
+				clearInterval(window.interval);
+				$("#example-svg-arc-with-trail,#example-canvas-arc-with-trail").children().remove();
+				new ArcWithTrailSVG($("#example-svg-arc-with-trail"));
+			} );
+
+			Reveal.addEventListener( 'draw-canvas-arc-with-trail', function() {
+				$("#example-svg-arc-with-trail,#example-canvas-arc-with-trail").children().remove();
+				new ArcWithTrailCanvas($("#example-canvas-arc-with-trail"));
+			} );
+
+			Reveal.addEventListener( 'draw-both-arc-with-trail', function() {
+				$("#example-svg-arc-with-trail,#example-canvas-arc-with-trail").children().remove();
+				$("#example-svg-arc-with-trail2,#example-canvas-arc-with-trail2").children().remove();
+				new ArcWithTrailSVG($("#example-svg-arc-with-trail2"));
+				new ArcWithTrailCanvas($("#example-canvas-arc-with-trail2"));				
+			} );
+		</script>
+
+	</body>
+</html>
