@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+
+  <head>
+    <meta charset="utf-8">
+
+  </head>
+
+  <body>
+    <script id="vertex-shader" type="x/webgl">
+      attribute vec3 position;
+      attribute vec3 color;
+
+      varying vec3 vColors;
+
+      void main(void) {
+        gl_Position = vec4(position.x, position.y, 0, 1);
+        gl_PointSize = position.z * 50.;
+        vColors = color;
+      }
+    </script>
+    <script id="fragment-shader" type="x/webgl">
+      #ifdef GL_ES
+      precision highp float;
+      #endif
+
+      uniform sampler2D sampler1;
+      varying vec3 vColors;
+
+      void main(void) {
+        vec4 point = texture2D(sampler1, gl_PointCoord);
+        gl_FragColor = vec4(vColors, point.a);
+      }
+    </script>
+    <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="../lib/js/PhiloGL.js"></script>
+    <script src="../js/scatterplot_webgl.js"></script>
+    <script>
+      new ScatterplotWebGL($('body'));
+    </script>
+
+  </body>
+</html>
+
