@@ -1,1 +1,1 @@
-Openvis conference slides.
+Openvis conference slides. See them live: http://miguelrios.github.io/openvis-web
